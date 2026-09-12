@@ -1,0 +1,63 @@
+# backend/docker-compose.yml
+#
+# Deploys the FastAPI backend + Ollama on your VPS.
+# Nginx is NOT included — configure it yourself on the host.
+#
+# Usage:
+#   cd backend
+#   cp .env.example .env        # fill in your values
+#   docker compose up -d --build
+#   docker compose exec ollama ollama pull qwen3:4b
+
+version: "3.9"
+
+services:
+
+  # ── FastAPI + Uvicorn ──────────────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"           # nginx proxies to this port
+    env_file:
+      - .env
+    depends_on:
+      ollama:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - ai-chat
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # ── Ollama LLM server ──────────────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"         # expose if you want to hit Ollama directly; remove if not needed
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    networks:
+      - ai-chat
+    # GPU — uncomment if your VPS has an NVIDIA GPU
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+networks:
+  ai-chat:
+    driver: bridge
+
+volumes:
+  ollama_data:
+    driver: local
