@@ -122,7 +122,7 @@ cp .env.example .env
 nano .env
 # Set:
 #   OLLAMA_BASE_URL=http://host.docker.internal:11434
-#   OLLAMA_MODEL=qwen3:4b   (or whatever model you have — check: ollama list)
+#   OLLAMA_MODEL=qwen3:0.6b   (or whatever model you have — check: ollama list)
 #   CORS_ORIGINS=["https://ai-chat-client-tau.vercel.app"]
 #   DEBUG=false
 

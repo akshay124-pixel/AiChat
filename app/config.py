@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     # In Docker on VPS: http://host.docker.internal:11434
     # In local dev:     http://localhost:11434
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:4b"
+    ollama_model: str = "qwen3:0.6b"
     ollama_timeout: int = 120
 
     # ── FastAPI ──────────────────────────────────────────────────────────────
