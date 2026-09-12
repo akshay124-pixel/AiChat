@@ -37,19 +37,25 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Don't set HSTS here — nginx handles it with proper max-age
+        # HSTS is set by nginx, not here
         return response
 
 
 # ---------------------------------------------------------------------------
-# Lifespan
+# Lifespan — startup / shutdown
 # ---------------------------------------------------------------------------
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting AI Chat API v%s  [debug=%s]", settings.app_version, settings.debug)
+    logger.info(
+        "Starting AI Chat API v%s  [env=%s  debug=%s]",
+        settings.app_version,
+        settings.environment,
+        settings.debug,
+    )
     logger.info("Ollama URL  : %s", settings.ollama_base_url)
     logger.info("Ollama model: %s", settings.ollama_model)
     logger.info("CORS origins: %s", settings.cors_origins)
+    # Note: OLLAMA_BASE_URL is logged but it's just a URL, not a secret.
 
     yield
 
@@ -66,14 +72,14 @@ app = FastAPI(
     version=settings.app_version,
     description="AI Chat backend — FastAPI + Ollama",
     lifespan=lifespan,
-    # Disable interactive docs in production
+    # Docs are disabled in production (DEBUG=false)
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
     openapi_url="/openapi.json" if settings.debug else None,
 )
 
 # ---------------------------------------------------------------------------
-# Middleware — order matters: CORS must run before security headers
+# Middleware — CORS first, then security headers
 # ---------------------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
@@ -87,7 +93,7 @@ app.add_middleware(
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ---------------------------------------------------------------------------
-# Global exception handler — never leak stack traces to the client
+# Global exception handler — never leak internals to the client
 # ---------------------------------------------------------------------------
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):

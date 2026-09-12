@@ -1,63 +1,44 @@
-# backend/docker-compose.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Chat — VPS backend
 #
-# Deploys the FastAPI backend + Ollama on your VPS.
-# Nginx is NOT included — configure it yourself on the host.
+# What runs here:   FastAPI + Uvicorn (Docker container)
+# What does NOT run here: Ollama — it runs on the VPS HOST, outside Docker
 #
-# Usage:
-#   cd backend
-#   cp .env.example .env        # fill in your values
+# The container reaches host Ollama via the special DNS name
+# "host.docker.internal" which Docker maps to the host's gateway IP.
+# This is enabled by the extra_hosts entry below.
+#
+# Usage on VPS:
+#   cp .env.example .env        # fill in CORS_ORIGINS with your Vercel URL
 #   docker compose up -d --build
-#   docker compose exec ollama ollama pull qwen3:4b
-
-version: "3.9"
+#   curl http://127.0.0.1:8000/api/health
+# ─────────────────────────────────────────────────────────────────────────────
 
 services:
 
-  # ── FastAPI + Uvicorn ──────────────────────────────────────────────────────
   backend:
     build:
       context: .
       dockerfile: Dockerfile
+    # Bind ONLY to localhost — nginx on the host proxies public traffic here.
+    # Change to "0.0.0.0:8000:8000" only if you have no nginx and want direct
+    # public access (not recommended for production).
     ports:
-      - "8000:8000"           # nginx proxies to this port
+      - "127.0.0.1:8000:8000"
     env_file:
       - .env
-    depends_on:
-      ollama:
-        condition: service_started
+    # This makes "host.docker.internal" resolve to the host machine's IP.
+    # Required so the container can reach Ollama running on the VPS host.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
-    networks:
-      - ai-chat
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')\""]
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')\"",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 15s
-
-  # ── Ollama LLM server ──────────────────────────────────────────────────────
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"         # expose if you want to hit Ollama directly; remove if not needed
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-    networks:
-      - ai-chat
-    # GPU — uncomment if your VPS has an NVIDIA GPU
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-
-networks:
-  ai-chat:
-    driver: bridge
-
-volumes:
-  ollama_data:
-    driver: local
+      start_period: 20s

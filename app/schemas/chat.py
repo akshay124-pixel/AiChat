@@ -1,7 +1,7 @@
 """
 Pydantic schemas for chat request/response validation.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 from uuid import uuid4
@@ -19,7 +19,7 @@ class Message(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid4()))
     role: MessageRole
     content: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_validator("content")
     @classmethod

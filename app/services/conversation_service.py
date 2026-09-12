@@ -6,7 +6,7 @@ Replace the storage backend here (PostgreSQL, Redis, etc.) without
 touching the API layer.
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from uuid import uuid4
 
@@ -38,11 +38,11 @@ class _ConversationRecord:
         self.title: str = title
         self.system_prompt: Optional[str] = system_prompt
         self.messages: List[Message] = []
-        self.created_at: datetime = datetime.utcnow()
-        self.updated_at: datetime = datetime.utcnow()
+        self.created_at: datetime = datetime.now(timezone.utc)
+        self.updated_at: datetime = datetime.now(timezone.utc)
 
     def touch(self) -> None:
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def to_summary(self) -> ConversationSummary:
         last_preview: Optional[str] = None

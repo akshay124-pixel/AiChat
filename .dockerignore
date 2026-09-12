@@ -1,10 +1,17 @@
+# Never bake these into the Docker image
 .venv/
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 .env
 .env.local
+.env.*.local
 tests/
 *.md
 .gitignore
 Dockerfile*
+docker-compose*
+.dockerignore
+pytest.ini
+requirements-dev.txt
